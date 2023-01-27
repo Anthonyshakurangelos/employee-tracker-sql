@@ -20,7 +20,7 @@ const db = mysql.createConnection(
 
      user: 'root',
 
-     password: 'Makaveli1996$',
+     password: process.env.DB_PASSWORD,
     //  add your password for my sql using dotenv
      database: 'employee_db'
     },
@@ -28,7 +28,7 @@ const db = mysql.createConnection(
 );
 
 // inquirer prompt questions
-async function questions ()  {
+ function questions ()  {
     return inquirer.prompt ([
         {
             type: 'list',
@@ -53,15 +53,15 @@ async function questions ()  {
             db.query('SELECT * FROM employees;', function (err, results){
                 const allEmployees = [];
                 allEmployees.push(results)
-                console.log(results);
+                console.table(results);
                 return init();
             });
         }
-        if (data.promptQuestion === 'View All Departments') {
+       else if (data.promptQuestion === 'View All Departments') {
             db.query('SELECT * FROM departments;', function (err, results) {
               const allDepartments = [];
               allDepartments.push(results)
-              console.log(results);
+              console.table(results);
               return init();
             });  
 
@@ -70,7 +70,7 @@ async function questions ()  {
             db.query('SELECT * FROM roles;', function (err, results) {
               const allRoles = [];
               allRoles.push(results)
-              console.log(results);
+              console.table(results);
               return init();
             });  
           }
@@ -81,7 +81,7 @@ else if (data.promptQuestion === 'Add Department'){
       {
         type: 'Type',
         name: 'name',
-        message: 'What is the name of the department you are adding?',
+        message: 'What is the name of this new department you are adding?',
        },
     ])
     .then((data) =>{
@@ -91,7 +91,7 @@ else if (data.promptQuestion === 'Add Department'){
         db.query('SELECT * FROM departments;', function (err, results) {
           const allEmployees = [];
           allEmployees.push(results)
-          console.log(results);
+          console.table(results);
           return init();})
       });
     }
@@ -108,7 +108,7 @@ else if (data.promptQuestion === 'Add Role'){
      {
       type: 'Number',
       name: 'salary',
-      message: 'What is the starting salary for the role?',
+      message: 'What is the salary for the role?',
      },
 
      {
@@ -122,11 +122,12 @@ else if (data.promptQuestion === 'Add Role'){
   .then((data) =>{
     console.log(data);
     const newRole = [data.addRole,parseInt(data.salary),data.getDepartment]
-    db.query('INSERT INTO roles (title, salary, department_id) VALUES (?, ?, ?,?, ?);', newRole, function (err, results) {
+    db.query('INSERT INTO roles (title, salary, department_id) VALUES (?, ?, ?);', newRole, function (err, results) {
       db.query('SELECT * FROM roles;', function (err, results) {
         const allEmployees = [];
+        const newRole = [];
         allEmployees.push(results)
-        console.log(results);
+        console.table(results);
         return init();})
     });
   }
@@ -145,7 +146,7 @@ else if (data.promptQuestion === 'Add Employee'){
 
      {
       type: 'Type',
-      name: 'LastName',
+      name: 'lastName',
       message: 'What is the employees last name?',
      },
 
@@ -158,27 +159,42 @@ else if (data.promptQuestion === 'Add Employee'){
 
   ])
   .then((data) =>{
-    console.log(data);
-    const newRole = [data.addRole,parseInt(data.salary),data.getDepartment]
-    db.query('INSERT INTO roles (title, salary, department_id) VALUES (?, ?, ?);', newRole, function (err, results) {
-      db.query('SELECT * FROM roles;', function (err, results) {
-        const allEmployees = [];
-        allEmployees.push(results)
-        console.log(results);
-        return init();})
+    const newEmployee = [data.firstName, data.lastName, data.role];
+            db.query(
+              "INSERT INTO employees (first_name, last_name, roles_id) VALUES (?, ?, ?);",
+              newEmployee,
+              function (err, results) {
+                db.query("SELECT * FROM employees;", function (err, results) {
+                  const allEmployees = [];
+                  allEmployees.push(results);
+                  console.table(results);
+                  return init();})
+    // console.log(data);
+    // const newEmployee = [data.firstName, data.lastName ,data.role]
+    // db.query('INSERT INTO employees; ("first_name", "last_name", "roles_id") VALUES (?, ?, ?);', newEmployee, function (err, results) {
+    //   db.query('SELECT * FROM employees;', function (err, results) {
+    //     const allEmployees = [];
+    //     allEmployees.push(results)
+    //     newEmployee.push(results)
+    //     console.log(results);
+    //     return init();})
     });
   }
 )
 }
 
 else if (data.promptQuestion === 'Update Employee Role'){
-    db.query('SELECT * FROM employee left JOIN roles ON roles.id = employee.id;', function (err, results) {
+    db.query('SELECT * FROM employees left JOIN roles ON roles.id = employees.id;', function (err, results) {
       const allEmployees = [];
+      const allRoles = [];
       results.forEach((employee) => {allEmployees.push(`${employee.id } ${employee.first_name} ${employee.last_name}`);});
       results.forEach((employee) => {
         allRoles.push(`${employee.title}`);
+
       });
-      console.log(allEmployees);
+
+      console.table(allEmployees);
+      console.table(allRoles);
     return inquirer.prompt([
       
         {
@@ -189,7 +205,7 @@ else if (data.promptQuestion === 'Update Employee Role'){
        },
        {
         type: 'list',
-        name: 'updateEmployee',
+        name: 'roleChoice',
         message: 'Choose the role the employee is going to',
         choices: allRoles,
        },
@@ -197,14 +213,14 @@ else if (data.promptQuestion === 'Update Employee Role'){
     .then((data) => {       
         db.query(
           "Update roles SET title = ? where id = ?;",
-          [data.roleSelection, data.updateEmployee[0]],
+          [data.roleChoice, data.updateEmployee[0]],
           function (err, results) {
             db.query(
               "SELECT * FROM employees left JOIN roles ON roles.id = employees.id;",
               function (err, results) {
                 const allEmployees = [];
                 allEmployees.push(results);
-                console.log(results);
+                console.table(results);
                 return init();
               }
             );
