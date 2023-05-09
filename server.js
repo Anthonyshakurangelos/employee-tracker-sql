@@ -1,243 +1,246 @@
-// importing and requiring 
-const express = require('express');
-const mysql = require('mysql2');
-const inquirer = require('inquirer');
-const fs = require('fs');
+const inquirer = require("inquirer");
+const express = require("express");
+const mysql = require("mysql2");
+require("dotenv").config();
 
+// use environment variables in your code
 
-
-const PORT = process.env.PORT || 3001;
+// const PORT = process.env.PORT || 3001;
 const app = express();
 
-// express middleware
-app.use(express.urlencoded({ extended: false}));
+app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
+var term = require("terminal-kit").terminal;
+
+const cTable = require("console.table");
+
 const db = mysql.createConnection(
-    // if localhost don't work use 127.0.0.1
-    {
-     host: '127.0.0.1',
+  {
+    host: "localhost",
+    user: "root",
+    password: process.env.DB_PASSWORD,
 
-     user: 'root',
-
-     password: process.env.DB_PASSWORD,
-    //  add your password for my sql using dotenv
-     database: 'employee_db'
-    },
-    console.log(`Connected to Employees database`)
+    database: "employee_db",
+  },
+  console.log(`Connected to the employee_db database.`)
 );
 
-// inquirer prompt questions
- function questions ()  {
-    return inquirer.prompt ([
-        {
-            type: 'list',
-            name: 'promptQuestion',
-            message: 'what would you like to do?',
-            choices: [
-              "View All Employees",
-              "View All Roles",
-              "View All Departments",
-              "Add Employee",
-              "Add Role",
-              "Add Department",
-              "Update Employee Role"],
-            default: true
-            },
-       ])
-    .then((data) => {
-        console.log(data);
-
-
-        if (data.promptQuestion === 'View All Employees') {
-            db.query('SELECT * FROM employees;', function (err, results){
-                const allEmployees = [];
-                allEmployees.push(results)
-                console.table(results);
-                return init();
-            });
-        }
-       else if (data.promptQuestion === 'View All Departments') {
-            db.query('SELECT * FROM departments;', function (err, results) {
-              const allDepartments = [];
-              allDepartments.push(results)
-              console.table(results);
-              return init();
-            });  
-
-          }
-          else if (data.promptQuestion === 'View All Roles'){
-            db.query('SELECT * FROM roles;', function (err, results) {
-              const allRoles = [];
-              allRoles.push(results)
-              console.table(results);
-              return init();
-            });  
-          }
- 
-
-else if (data.promptQuestion === 'Add Department'){
-    return inquirer.prompt([
+const dashboardQuetions = () => {
+  return inquirer
+    .prompt([
       {
-        type: 'Type',
-        name: 'name',
-        message: 'What is the name of this new department you are adding?',
-       },
+        type: "list",
+        name: "initialQuestion",
+        message:
+          "Welcome to the employee database. What Can I help you with today?",
+        choices: [
+          "view all departments",
+          "view all roles",
+          "view all employees",
+          "add a department",
+          "add a role",
+          "add an employee",
+          "update an employee role",
+        ],
+      },
     ])
-    .then((data) =>{
-      console.log(data);
-      const newDepartment = data.addDepartment;
-      db.query('INSERT INTO departments (department_name) VALUES (?);', data.name, function (err, results) {
-        db.query('SELECT * FROM departments;', function (err, results) {
-          const allEmployees = [];
-          allEmployees.push(results)
+    .then((data) => {
+      if (data.initialQuestion === "view all departments") {
+        term.bold.underline.brightMagenta("All Departments.\n\n");
+        db.query("SELECT * FROM departments;", function (err, data) {
+          const allDepartments = [];
+          allDepartments.push(data);
+          console.table(data);
+          return init();
+        });
+      } else if (data.initialQuestion === "view all roles") {
+        term.bold.underline.brightMagenta("All Roles.\n\n");
+        db.query("SELECT * FROM roles;", function (err, results) {
+          const allRoles = [];
+          allRoles.push(results);
           console.table(results);
-          return init();})
-      });
-    }
-  )
-}
-else if (data.promptQuestion === 'Add Role'){
-  return inquirer.prompt([
-    {
-      type: 'Type',
-      name: 'addRole',
-      message: 'What is the name of the role you are adding?',
-     },
-
-     {
-      type: 'Number',
-      name: 'salary',
-      message: 'What is the salary for the role?',
-     },
-
-     {
-      type: 'list',
-      name: 'getDepartment',
-
-      message: 'What department is this role in"Injector Tech = 1" "Injector Production = 1" "Lead Turbo Tech = 2" "Production = 2" "Pump Tech= 3" "Pump Production = 3" "Sales = 4" "Shipper = 5")',
-      choices: [1, 2, 3, 4, 5]
-    },
-  ])
-  .then((data) =>{
-    console.log(data);
-    const newRole = [data.addRole,parseInt(data.salary),data.getDepartment]
-    db.query('INSERT INTO roles (title, salary, department_id) VALUES (?, ?, ?);', newRole, function (err, results) {
-      db.query('SELECT * FROM roles;', function (err, results) {
-        const allEmployees = [];
-        const newRole = [];
-        allEmployees.push(results)
-        console.table(results);
-        return init();})
-    });
-  }
-)
-}
-
-else if (data.promptQuestion === 'Add Employee'){
-  return inquirer.prompt([
-    
-    
-    {
-      type: 'Type',
-      name: 'firstName',
-      message: 'What is the employees first name?',
-     },
-
-     {
-      type: 'Type',
-      name: 'lastName',
-      message: 'What is the employees last name?',
-     },
-
-     {
-      type: 'list',
-      name: 'role',
-      message: 'What is the employees role? "Injector = 1" "Turbos = 2" "Pumps = 3" "Sales = 4" "Shipping = 5" ',
-      choices: [1,2,3,4,5],
-     },
-
-  ])
-  .then((data) =>{
-    const newEmployee = [data.firstName, data.lastName, data.role];
+          return init();
+        });
+      } else if (data.initialQuestion === "view all employees") {
+        term.bold.underline.brightMagenta("All Employees.\n\n");
+        db.query(
+          "SELECT * FROM employees left JOIN roles ON roles.id = employees.id;",
+          function (err, results) {
+            const allEmployees = [];
+            allEmployees.push(results);
+            console.table(results);
+            return init();
+          }
+        );
+      } else if (data.initialQuestion === "add a department") {
+        return inquirer
+          .prompt([
+            {
+              type: "Type",
+              name: "name",
+              message: "What is the name of the department you are adding?",
+            },
+          ])
+          .then((data) => {
+            console.log(data);
+            db.query(
+              "INSERT INTO departments (department_name) VALUES (?);",
+              data.name,
+              function (err, results) {
+                term.bold.underline.brightMagenta(
+                  "New department added, please see below.\n\n"
+                );
+                db.query("SELECT * FROM departments;", function (err, results) {
+                  const allEmployees = [];
+                  allEmployees.push(results);
+                  console.table(results);
+                  return init();
+                });
+              }
+            );
+          });
+      } else if (data.initialQuestion === "add a role") {
+        return inquirer
+          .prompt([
+            {
+              type: "Type",
+              name: "addRole",
+              message: "What is the name of the role you are adding?",
+            },
+            {
+              type: "Number",
+              name: "salary",
+              message: "What is the starting salary for the role?",
+            },
+            {
+              type: "list",
+              name: "getDepartment",
+              message:
+                'What department is the new role under "Software Engineer = 1" "Front-end dev = 2" "Back-end dev = 3")',
+              choices: [1, 2, 3],
+            },
+          ])
+          .then((data) => {
+            const newRole = [
+              data.addRole,
+              parseInt(data.salary),
+              data.getDepartment,
+            ];
+            db.query(
+              "INSERT INTO roles (title, salary, department_id) VALUES (?, ?, ?);",
+              newRole,
+              function (err, results) {
+                term.bold.underline.brightMagenta(
+                  "New department added, please see below.\n\n"
+                );
+                db.query("SELECT * FROM roles;", function (err, results) {
+                  const allEmployees = [];
+                  allEmployees.push(results);
+                  console.table(results);
+                  return init();
+                });
+              }
+            );
+          });
+      } else if (data.initialQuestion === "add an employee") {
+        return inquirer
+          .prompt([
+            {
+              type: "Type",
+              name: "firstName",
+              message: "What is the employees first name?",
+            },
+            {
+              type: "Type",
+              name: "lastName",
+              message: "What is the employees last name?",
+            },
+            {
+              type: "list",
+              name: "role",
+              message:
+                'What is the employees role_id "Software Engineer = 1" "Front-end dev = 2" "Back-end dev = 3"?',
+              choices: [1, 2, 3],
+            },
+          ])
+          .then((data) => {
+            const newEmployee = [data.firstName, data.lastName, data.role];
             db.query(
               "INSERT INTO employees (first_name, last_name, roles_id) VALUES (?, ?, ?);",
               newEmployee,
               function (err, results) {
+                term.bold.underline.brightMagenta(
+                  "New employee added, please see below.\n\n"
+                );
                 db.query("SELECT * FROM employees;", function (err, results) {
                   const allEmployees = [];
                   allEmployees.push(results);
                   console.table(results);
-                  return init();})
-    // console.log(data);
-    // const newEmployee = [data.firstName, data.lastName ,data.role]
-    // db.query('INSERT INTO employees; ("first_name", "last_name", "roles_id") VALUES (?, ?, ?);', newEmployee, function (err, results) {
-    //   db.query('SELECT * FROM employees;', function (err, results) {
-    //     const allEmployees = [];
-    //     allEmployees.push(results)
-    //     newEmployee.push(results)
-    //     console.log(results);
-    //     return init();})
-    });
-  }
-)
-}
-
-else if (data.promptQuestion === 'Update Employee Role'){
-    db.query('SELECT * FROM employees left JOIN roles ON roles.id = employees.id;', function (err, results) {
-      const allEmployees = [];
-      const allRoles = [];
-      results.forEach((employee) => {allEmployees.push(`${employee.id } ${employee.first_name} ${employee.last_name}`);});
-      results.forEach((employee) => {
-        allRoles.push(`${employee.title}`);
-
-      });
-
-      console.table(allEmployees);
-      console.table(allRoles);
-    return inquirer.prompt([
-      
-        {
-        type: 'list',
-        name: 'updateEmployee',
-        message: 'Which employee would you like to update today?',
-        choices: allEmployees
-       },
-       {
-        type: 'list',
-        name: 'roleChoice',
-        message: 'Choose the role the employee is going to',
-        choices: allRoles,
-       },
-    ])
-    .then((data) => {       
-        db.query(
-          "Update roles SET title = ? where id = ?;",
-          [data.roleChoice, data.updateEmployee[0]],
-          function (err, results) {
-            db.query(
-              "SELECT * FROM employees left JOIN roles ON roles.id = employees.id;",
-              function (err, results) {
-                const allEmployees = [];
-                allEmployees.push(results);
-                console.table(results);
-                return init();
+                  return init();
+                });
               }
             );
+          });
+      } else if (data.initialQuestion === "update an employee role") {
+        db.query(
+          "SELECT * FROM employees left JOIN roles ON roles.id = employees.id;",
+          function (err, results) {
+            const allEmployees = [];
+            const allRoles = [];
+            results.forEach((employee) => {
+              allEmployees.push(
+                `${employee.id} ${employee.first_name} ${employee.last_name}`
+              );
+            });
+            results.forEach((employee) => {
+              allRoles.push(`${employee.title}`);
+            });
+            console.table(allEmployees);
+            console.table(allRoles);
+            return inquirer
+              .prompt([
+                {
+                  type: "list",
+                  name: "updateEmployee",
+                  message: "What employee would you like to update?",
+                  choices: allEmployees,
+                },
+                {
+                  type: "list",
+                  name: "roleSelection",
+                  message: "What role is the employee switching to?",
+                  choices: allRoles,
+                },
+              ])
+              .then((data) => {
+                db.query(
+                  "Update roles SET title = ? where id = ?;",
+                  [data.roleSelection, data.updateEmployee[0]],
+                  function (err, results) {
+                    term.bold.underline.brightMagenta(
+                      "Employee role has been updated.\n\n"
+                    );
+                    db.query(
+                      "SELECT * FROM employees left JOIN roles ON roles.id = employees.id;",
+                      function (err, results) {
+                        const allEmployees = [];
+                        allEmployees.push(results);
+                        console.table(results);
+                        return init();
+                      }
+                    );
+                  }
+                );
+              });
           }
         );
-      });
-  }
-);
-}
-});
+      }
+    });
 };
-    
 
 function init() {
- questions ()
+  dashboardQuetions();
 }
 
 init();
-
-
